@@ -4,7 +4,6 @@ on: [push, pull_request, workflow_dispatch]
 jobs:
   functionalSelfTest:
     runs-on: ubuntu-latest
-    needs: test
     strategy:
       matrix:
         node-version: [ 16.x ]
