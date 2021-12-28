@@ -12,7 +12,11 @@ async function run(): Promise<void> {
     try {
         await runImpl();
     } catch (error) {
-        ghActions.setFailed(error.message);
+        if (typeof error === 'string' || error instanceof Error) {
+            ghActions.setFailed(error.toString());
+        } else {
+            ghActions.setFailed('Unknown error');
+        }
     }
 }
 
