@@ -1,0 +1,20 @@
+name: 'schema-validation-action'
+description: 'Validate JSON, YAML, XML against a schema'
+author: 'cardinalby'
+inputs:
+  schema:
+    description: 'Schema file path or URL'
+    required: true
+  file:
+    description: 'Path to file to validate'
+    required: true
+outputs:
+  errorType:
+    description: '`file` or `schema` or `validation`'
+  validation_error:
+    description: 'Error during file validation'
+runs:
+  using: 'node16'
+  main: 'dist/index.js'
+branding:
+  icon: 'code'

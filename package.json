@@ -1,0 +1,28 @@
+{
+  "name": "schema-validator-action",
+  "private": false,
+  "description": "Validate JSON, YAML, XML against a schema",
+  "main": "lib/main.js",
+  "scripts": {
+    "build": "tsc",
+    "pack": "ncc build",
+    "all": "npm run build && npm run pack"
+  },
+  "author": "cardinalby",
+  "license": "MIT",
+  "dependencies": {
+    "@actions/core": "^1.6.0",
+    "fs-extra": "^10.0.0",
+    "github-actions-utils": "^1.0.8",
+    "ajv": "^8.8.2",
+    "yaml": "^1.10.2",
+    "got": "^12.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^16.11.17",
+    "@types/got": "^9.6.12",
+    "@types/fs-extra": "^9.0.13",
+    "@vercel/ncc": "^0.33.1",
+    "typescript": "^4.5.4"
+  }
+}
