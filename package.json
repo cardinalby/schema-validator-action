@@ -2,7 +2,7 @@
   "name": "schema-validator-action",
   "private": false,
   "description": "Validate JSON, YAML, XML against a schema",
-  "main": "lib/main.js",
+  "main": "lib/index.js",
   "scripts": {
     "build": "tsc",
     "pack": "ncc build",
