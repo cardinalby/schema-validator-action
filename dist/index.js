@@ -113,13 +113,18 @@ exports.validate = validate;
 function readData(data, name) {
     try {
         ghActions.info(`Parsing ${name} as JSON...`);
-        return JSON.parse(data);
+        const result = JSON.parse(data);
+        ghActions.info(`Parsed to ${typeof result}`);
+        return result;
     }
     catch (err) {
         ghActions.info(`${name} is not a valid JSON`);
     }
     try {
-        return yaml_1.default.parse(data);
+        ghActions.info(`Parsing ${name} as YAML...`);
+        const result = yaml_1.default.parse(data);
+        ghActions.info(`Parsed to ${typeof result}`);
+        return result;
     }
     catch (err) {
         ghActions.info(`${name} is not a valid YAML`);
