@@ -37,7 +37,9 @@ jobs:
 
       - name: Check actionYmlAgainstGithubActions result
         if: steps.actionYmlAgainstGithubActions.outputs.errorType != ''
-        run: exit 1
+        run: |
+          echo "${{steps.actionYmlAgainstGithubActions.outputs.errorType}}" &&
+          exit 1
 
       - id: actionYmlAgainstAngular
         name: Validate action.yml against wrong schema
@@ -51,7 +53,10 @@ jobs:
         if: |
           steps.actionYmlAgainstAngular.outputs.errorType != 'validation' ||
           steps.actionYmlAgainstAngular.outcome != 'failure'
-        run: exit 1
+        run: |
+          echo "${{steps.actionYmlAgainstAngular.outputs.errorType}}" &&
+          echo "${{steps.actionYmlAgainstAngular.outcome}}" &&
+          exit 1
 
       - id: packageJsonAgainsLocalSchema
         name: Validate package.json against local schema
@@ -63,4 +68,6 @@ jobs:
 
       - name: Check packageJsonAgainsLocalSchema result
         if: steps.packageJsonAgainsLocalSchema.outputs.errorType != ''
-        run: exit 1
+        run: |
+          echo "${{steps.packageJsonAgainsLocalSchema.outputs.errorType}}" &&
+          exit 1
