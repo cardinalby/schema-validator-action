@@ -111,37 +111,38 @@ function validate(schema, file) {
 }
 exports.validate = validate;
 function readData(data, name) {
-    try {
-        ghActions.info(`Parsing ${name} as JSON...`);
-        const result = JSON.parse(data);
-        ghActions.info(`Parsed to ${typeof result}`);
-        return result;
-    }
-    catch (err) {
-        ghActions.info(`${name} is not a valid JSON`);
-    }
-    try {
-        ghActions.info(`Parsing ${name} as YAML...`);
-        const result = yaml_1.default.parse(data);
-        ghActions.info(`Parsed to ${typeof result}`);
-        return result;
-    }
-    catch (err) {
-        ghActions.info(`${name} is not a valid YAML`);
+    for (let parser of [
+        { name: 'JSON', parse: (s) => JSON.parse(s) },
+        { name: 'YAML', parse: (s) => yaml_1.default.parse(s) },
+    ]) {
+        try {
+            ghActions.info(`Parsing ${name} as ${parser.name}...`);
+            const result = parser.parse(data);
+            ghActions.info(`Parsed to ${typeof result}`);
+            return result;
+        }
+        catch (err) {
+            ghActions.info(`${name} is not a valid ${parser.name}`);
+        }
     }
     throw new Error(`${name} is not a valid JSON or YAML`);
 }
 function readSchemaContents(schemaPath) {
     return __awaiter(this, void 0, void 0, function* () {
         if ((0, utils_1.isValidHttpUrl)(schemaPath)) {
-            ghActions.info(`Loading schema from URL: ${schemaPath}`);
-            return (yield axios_1.default.get(schemaPath, {
+            ghActions.info(`Loading schema from URL: ${schemaPath} ...`);
+            const response = yield axios_1.default.get(schemaPath, {
                 responseType: 'text',
                 transformResponse: res => res
-            })).data;
+            });
+            ghActions.info(`${response.status}, ${response.headers['Content-Length']} bytes loaded, Content-Type: ` +
+                response.headers['Content-Type']);
+            return response.data;
         }
-        ghActions.info(`Loading schema from file: ${schemaPath}`);
-        return (yield fs.readFile(schemaPath)).toString();
+        ghActions.info(`Loading schema from file: ${schemaPath} ...`);
+        const buffer = yield fs.readFile(schemaPath);
+        ghActions.info(`${buffer.length} bytes loaded`);
+        return buffer.toString();
     });
 }
 
