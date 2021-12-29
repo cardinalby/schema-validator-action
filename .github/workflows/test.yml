@@ -49,8 +49,8 @@ jobs:
 
       - name: Check actionYmlAgainstAngular result
         if: |
-          steps.actionYmlAgainsTravis.outputs.errorType != 'validation' ||
-          steps.actionYmlAgainsTravis.outcome != 'failure'
+          steps.actionYmlAgainstAngular.outputs.errorType != 'validation' ||
+          steps.actionYmlAgainstAngular.outcome != 'failure'
         run: exit 1
 
       - id: packageJsonAgainsLocalSchema

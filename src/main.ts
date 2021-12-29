@@ -52,12 +52,17 @@ export async function validate(schema: string, file: string) {
 function readData(data: string, name: string): any {
     try {
         ghActions.info(`Parsing ${name} as JSON...`);
-        return JSON.parse(data);
+        const result = JSON.parse(data);
+        ghActions.info(`Parsed to ${typeof result}`);
+        return result;
     } catch (err) {
         ghActions.info(`${name} is not a valid JSON`);
     }
     try {
-        return YAML.parse(data)
+        ghActions.info(`Parsing ${name} as YAML...`);
+        const result = YAML.parse(data);
+        ghActions.info(`Parsed to ${typeof result}`);
+        return result;
     } catch (err) {
         ghActions.info(`${name} is not a valid YAML`);
     }
