@@ -9,39 +9,58 @@ jobs:
         node-version: [ 16.x ]
     steps:
       - uses: actions/checkout@v2
+
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v2
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
+
       - name: Install dependencies
         run: npm ci
+
       - name: Build
         run: npm run build
+
       - name: Pack
         run: npm run pack
 
-      - id: actionYmlAgainsGithubActions
+      - name: Jest tests
+        run: npm run test
+
+      - id: actionYmlAgainstGithubActions
         name: Validate action.yml against github-action schema
         uses: ./
         with:
           file: 'action.yml'
           schema: 'https://json.schemastore.org/github-action.json'
 
-      - name: Check actionYmlAgainsGithubActions result
-        if: steps.actionYmlAgainsGithubActions.outputs.errorType != ''
+      - name: Check actionYmlAgainstGithubActions result
+        if: steps.actionYmlAgainstGithubActions.outputs.errorType != ''
         run: exit 1
 
-      - id: actionYmlAgainsTravis
-        name: Validate action.yml against travis schema
+      - id: actionYmlAgainstAngular
+        name: Validate action.yml against wrong schema
         continue-on-error: true
         uses: ./
         with:
           file: 'action.yml'
-          schema: 'https://json.schemastore.org/travis.json'
+          schema: 'https://raw.githubusercontent.com/angular/angular-cli/master/packages/angular/cli/lib/config/workspace-schema.json'
 
-      - name: Check actionYmlAgainsTravis result
+      - name: Check actionYmlAgainstAngular result
         if: |
           steps.actionYmlAgainsTravis.outputs.errorType != 'validation' ||
           steps.actionYmlAgainsTravis.outcome != 'failure'
+        run: exit 1
+
+      - id: packageJsonAgainsLocalSchema
+        name: Validate package.json against local schema
+        continue-on-error: true
+        uses: ./
+        with:
+          file: 'package.json'
+          schema: 'tests/integration/package.schema.json'
+
+      - name: Check packageJsonAgainsLocalSchema result
+        if: steps.packageJsonAgainsLocalSchema.outputs.errorType != ''
         run: exit 1

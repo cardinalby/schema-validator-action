@@ -1,17 +1,22 @@
 import * as ghActions from '@actions/core';
-import { actionInputs } from './actionInputs';
-import { actionOutputs } from './actionOutputs';
 import * as fs from 'fs-extra'
 import {isValidHttpUrl} from "./utils";
-import got from "got";
-import Ajv from "ajv";
+import {Validator} from "jsonschema";
 import YAML from 'yaml'
+import {SchemaValidatorError} from "./errors";
+import axios from "axios";
 
 // noinspection JSUnusedLocalSymbols
-async function run(): Promise<void> {
+export async function run(): Promise<void> {
     try {
-        await runImpl();
+        await validate(
+            ghActions.getInput('schema', {required: true}),
+            ghActions.getInput('file', {required: true})
+        );
     } catch (error) {
+        if (error instanceof SchemaValidatorError) {
+            ghActions.setOutput('errorType', error.errorType);
+        }
         if (typeof error === 'string' || error instanceof Error) {
             ghActions.setFailed(error.toString());
         } else {
@@ -20,31 +25,28 @@ async function run(): Promise<void> {
     }
 }
 
-async function runImpl() {
-   const ajv = new Ajv({allErrors: true});
-
-   let file;
-   try {
-       file = readData((await fs.readFile(actionInputs.file)).toString(), 'file');
-   } catch (err) {
-       actionOutputs.errorType.setValue('file');
-       throw new Error('Error reading file. ' + err);
-   }
-
-    let validate;
+export async function validate(schema: string, file: string) {
+    let fileObj;
     try {
-        const schema = readData(await readSchemaContents(actionInputs.schema), 'schema');
-        validate = ajv.compile(schema);
+        fileObj = readData((await fs.readFile(file)).toString(), 'file');
     } catch (err) {
-        actionOutputs.errorType.setValue('schema');
-        throw new Error('Error reading schema. ' + err);
+        throw new SchemaValidatorError('file', 'Error reading file. ' + err);
     }
 
-    if (!validate(file)) {
-        actionOutputs.errorType.setValue('validation');
-        ghActions.error(JSON.stringify(validate.errors));
-        throw new Error('Validation error');
+    let schemaObj;
+    try {
+        schemaObj = readData(await readSchemaContents(schema), 'schema');
+    } catch (err) {
+        throw new SchemaValidatorError('schema', 'Error reading schema. ' + err);
     }
+
+    const validator = new Validator();
+    const result = validator.validate(fileObj, schemaObj);
+    if (!result.valid) {
+        result.errors.forEach(error => ghActions.error(error.stack));
+        throw new SchemaValidatorError('validation', 'Validation error');
+    }
+    ghActions.info('Validated');
 }
 
 function readData(data: string, name: string): any {
@@ -65,11 +67,11 @@ function readData(data: string, name: string): any {
 async function readSchemaContents(schemaPath: string): Promise<string> {
     if (isValidHttpUrl(schemaPath)) {
         ghActions.info(`Loading schema from URL: ${schemaPath}`);
-        return got.get(schemaPath).text();
+        return (await axios.get(schemaPath, {
+            responseType: 'text',
+            transformResponse: res => res }
+        )).data;
     }
     ghActions.info(`Loading schema from file: ${schemaPath}`);
     return (await fs.readFile(schemaPath)).toString();
 }
-
-// noinspection JSIgnoredPromiseFromCall
-run();
