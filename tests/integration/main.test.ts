@@ -33,6 +33,16 @@ describe('main', () => {
         }
     });
 
+    it('should throw remote schema error', async () => {
+        try {
+            await validate('https://dwedwoo430930jfgerno9w04.com/', 'package.json');
+            fail('Should throw');
+        } catch (err) {
+            expect(err).toBeInstanceOf(SchemaValidatorError)
+            expect((err as SchemaValidatorError).errorType).toBe('schema');
+        }
+    });
+
     it('should throw file error', async () => {
         try {
             await validate('tests/integration/package.schema.json', 'LICENSE');

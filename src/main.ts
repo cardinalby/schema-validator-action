@@ -50,33 +50,37 @@ export async function validate(schema: string, file: string) {
 }
 
 function readData(data: string, name: string): any {
-    try {
-        ghActions.info(`Parsing ${name} as JSON...`);
-        const result = JSON.parse(data);
-        ghActions.info(`Parsed to ${typeof result}`);
-        return result;
-    } catch (err) {
-        ghActions.info(`${name} is not a valid JSON`);
-    }
-    try {
-        ghActions.info(`Parsing ${name} as YAML...`);
-        const result = YAML.parse(data);
-        ghActions.info(`Parsed to ${typeof result}`);
-        return result;
-    } catch (err) {
-        ghActions.info(`${name} is not a valid YAML`);
+    for (let parser of [
+        {name: 'JSON', parse: (s: string) => JSON.parse(s)},
+        {name: 'YAML', parse: (s: string) => YAML.parse(s)},
+    ]) {
+        try {
+            ghActions.info(`Parsing ${name} as ${parser.name}...`);
+            const result = parser.parse(data);
+            ghActions.info(`Parsed to ${typeof result}`);
+            return result;
+        } catch (err) {
+            ghActions.info(`${name} is not a valid ${parser.name}`);
+        }
     }
     throw new Error(`${name} is not a valid JSON or YAML`);
 }
 
 async function readSchemaContents(schemaPath: string): Promise<string> {
     if (isValidHttpUrl(schemaPath)) {
-        ghActions.info(`Loading schema from URL: ${schemaPath}`);
-        return (await axios.get(schemaPath, {
+        ghActions.info(`Loading schema from URL: ${schemaPath} ...`);
+        const response = await axios.get(schemaPath, {
             responseType: 'text',
             transformResponse: res => res }
-        )).data;
+        );
+        ghActions.info(
+            `${response.status}, ${response.headers['Content-Length']} bytes loaded, Content-Type: ` +
+            response.headers['Content-Type']
+        );
+        return response.data;
     }
-    ghActions.info(`Loading schema from file: ${schemaPath}`);
-    return (await fs.readFile(schemaPath)).toString();
+    ghActions.info(`Loading schema from file: ${schemaPath} ...`);
+    const buffer = await fs.readFile(schemaPath);
+    ghActions.info(`${buffer.length} bytes loaded`);
+    return buffer.toString();
 }
