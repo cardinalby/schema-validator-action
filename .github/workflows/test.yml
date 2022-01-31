@@ -64,10 +64,38 @@ jobs:
         uses: ./
         with:
           file: 'package.json'
-          schema: 'tests/integration/package.schema.json'
+          schema: 'tests/integration/data/package.schema.json'
 
       - name: Check packageJsonAgainsLocalSchema result
         if: steps.packageJsonAgainsLocalSchema.outputs.errorType != ''
         run: |
           echo "${{steps.packageJsonAgainsLocalSchema.outputs.errorType}}" &&
+          exit 1
+
+      - id: useSchemaProperty
+        name: Validate using $schema property
+        continue-on-error: true
+        uses: ./
+        with:
+          file: 'tests/integration/data/package.schema.json'
+
+      - name: Check useSchemaProperty result
+        if: steps.useSchemaProperty.outputs.errorType != ''
+        run: |
+          echo "${{steps.useSchemaProperty.outputs.errorType}}" &&
+          exit 1
+
+      - id: validateMultipleFiles
+        name: Validate multiple files
+        continue-on-error: true
+        uses: ./
+        with:
+          file: 'tests/integration/data/files/package_*.json|tests/integration/data/files/3_package.json'
+          schema: 'tests/integration/data/package.schema.json'
+
+
+      - name: Check validateMultipleFiles result
+        if: steps.validateMultipleFiles.outputs.errorType != ''
+        run: |
+          echo "${{steps.validateMultipleFiles.outputs.errorType}}" &&
           exit 1
