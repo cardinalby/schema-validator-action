@@ -4,9 +4,9 @@ author: 'cardinalby'
 inputs:
   schema:
     description: 'Schema file path or URL'
-    required: true
+    required: false
   file:
-    description: 'Path to file to validate'
+    description: '| separated files to validate. Globs are allowed'
     required: true
 outputs:
   errorType:

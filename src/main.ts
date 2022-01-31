@@ -5,12 +5,16 @@ import {Validator} from "jsonschema";
 import YAML from 'yaml'
 import {SchemaValidatorError} from "./errors";
 import axios from "axios";
+import {getFilePaths} from "./getFilePaths";
+import assert from "assert";
+
+type FileObject = {parsed: any, schema: undefined }|{parsed: object, schema: object};
 
 // noinspection JSUnusedLocalSymbols
 export async function run(): Promise<void> {
     try {
         await validate(
-            ghActions.getInput('schema', {required: true}),
+            ghActions.getInput('schema', {required: false}),
             ghActions.getInput('file', {required: true})
         );
     } catch (error) {
@@ -26,25 +30,33 @@ export async function run(): Promise<void> {
 }
 
 export async function validate(schema: string, file: string) {
-    let fileObj;
-    try {
-        fileObj = readData((await fs.readFile(file)).toString(), 'file');
-    } catch (err) {
-        throw new SchemaValidatorError('file', 'Error reading file. ' + err);
+    const files = await getFilePaths(file);
+    if (files.length === 0) {
+        throw new SchemaValidatorError('file', 'No files found according to "file" input.');
     }
 
+    const fileObjects: FileObject[] = await Promise.all(
+        files.map(file => readFile(file, !schema))
+    );
+
     let schemaObj;
-    try {
-        schemaObj = readData(await readSchemaContents(schema), 'schema');
-    } catch (err) {
-        throw new SchemaValidatorError('schema', 'Error reading schema. ' + err);
+    if (schema) {
+        try {
+            schemaObj = readData(await readSchemaContents(schema), schema);
+        } catch (err) {
+            throw new SchemaValidatorError('schema', 'Error reading schema. ' + err);
+        }
     }
 
     const validator = new Validator();
-    const result = validator.validate(fileObj, schemaObj);
-    if (!result.valid) {
-        result.errors.forEach(error => ghActions.error(error.stack));
-        throw new SchemaValidatorError('validation', 'Validation error');
+    for (let fileObject of fileObjects) {
+        let fileSchemaObj = schemaObj || fileObject.schema;
+        assert(fileSchemaObj);
+        const result = validator.validate(fileObject.parsed, fileSchemaObj);
+        if (!result.valid) {
+            result.errors.forEach(error => ghActions.error(error.stack));
+            throw new SchemaValidatorError('validation', 'Validation error');
+        }
     }
     ghActions.info('Validated');
 }
@@ -65,6 +77,40 @@ function readData(data: string, name: string): any {
     }
     throw new Error(`${name} is not a valid JSON or YAML`);
 }
+
+async function readFile(
+    file: string,
+    requireSchemaProperty: boolean
+): Promise<FileObject> {
+    let parsed;
+    try {
+        parsed = readData((await fs.readFile(file)).toString(), file);
+    } catch (err) {
+        throw new SchemaValidatorError('file', 'Error reading file. ' + err);
+    }
+    if (!requireSchemaProperty) {
+        return {parsed, schema: undefined};
+    }
+    assert(parsed != undefined);
+    if (typeof parsed !== 'object' ||
+        typeof parsed['$schema'] !== 'string'
+    ) {
+        throw new SchemaValidatorError(
+            'schema', `"schema" input is not set and $schema property is missing in ${file}`
+        );
+    }
+    try {
+        ghActions.info(
+            `"schema" input is not set, reading $schema = ` +
+            `"${parsed['$schema']} from ${file}"`
+        );
+        const schema = readData(await readSchemaContents(parsed['$schema']), parsed['$schema']);
+        return {parsed, schema}
+    } catch (err) {
+        throw new SchemaValidatorError('schema', 'Error reading schema. ' + err);
+    }
+}
+
 
 async function readSchemaContents(schemaPath: string): Promise<string> {
     if (isValidHttpUrl(schemaPath)) {

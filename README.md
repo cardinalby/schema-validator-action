@@ -26,29 +26,37 @@ Fails if validation doesn't succeed. Based on
 ```
 
 ```yaml
-- id: remoteSchemaTest
-  name: Validate package.json against a missing remote schema
-  continue-on-error: true
+- name: Validate all json files using their own $schema properties
   uses: cardinalby/schema-validator-action@v1
   with:
-    file: 'package.json'
-    schema: 'https://not-existing-url-1245/'
+    file: 'dir/*.json'
+```
 
-# steps.remoteSchemaTest.outputs.errorType == "schema"
-# steps.remoteSchemaTest.outcome == "failure"
+```yaml
+- name: Validate 3 files using the same schema
+  uses: cardinalby/schema-validator-action@v1
+  with:
+    file: 'first.json|second.json|third.json'
+    schema: 'https://json.schemastore.org/swagger-2.0.json'
 ```
 
 ## Inputs
 
-### `file` **Required**
+### 🔸 `file` **Required**
 Path to the JSON or YAML file to be validated.
 
-### `schema` **Required**
+* Can accept a _glob_ pattern (will validate all matched files)
+* Can accept multiple files (or glob patterns) separated by `|` symbol.
+
+### 🔸 `schema`
 Path or URL (http or https) to the JSON or YAML file with a schema.
+
+**Can be empty** if all validated files contain valid `$schema` property.
+Input value has a priority over `$schema` property in file (if both are set). 
 
 ## Outputs
 
-### `errorType`
+### 🔹 `errorType`
 Is empty if validation succeeds.
 * `file`: file loading or parsing failed
 * `schema`: schema loading or parsing failed
